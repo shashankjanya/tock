@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tock - The Deli Kitchen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #f8fafc, #f1f5f9); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .brand-font { font-family: 'Fredoka', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+        .hidden { display: none !important; }
+        input[type=range] { accent-color: #0d9488; }
+        input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 1; filter: invert(0.4); }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center text-gray-700">
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main Container -->
+    <div class="w-full max-w-5xl glass rounded-2xl p-6 mt-6 shadow-sm border-slate-200">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-4">
+            <h1 class="text-4xl font-semibold text-teal-800 brand-font flex items-end gap-2">
+                ⏱️ Tock 
+                <sub class="text-base font-medium text-slate-500 font-sans bottom-[4px]">The Deli Kitchen's time clock.</sub>
+            </h1>
+            <button id="btn-logout" class="hidden text-sm text-rose-500 hover:text-rose-700 font-semibold transition" onclick="window.logout()">Log Out</button>
+        </div>
+
+        <!-- Login View -->
+<div id="view-login" class="max-w-md mx-auto my-10">
+    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center">
+        <div class="mb-6">
+            <span class="text-6xl block mb-4 drop-shadow-sm">🌿</span>
+            <h2 class="text-2xl font-bold text-slate-800 brand-font">Welcome to Tock</h2>
+            <p class="text-slate-500 text-sm mt-2 font-medium">Please log in to manage your shifts</p>
+        </div>
+
+        <div class="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg">
+            <button id="tab-emp" type="button" onclick="window.setLoginMode('employee')" class="flex-1 bg-white shadow-sm text-slate-800 py-2 rounded-md font-semibold transition">Employee</button>
+            <button id="tab-admin" type="button" onclick="window.setLoginMode('admin')" class="flex-1 text-slate-500 py-2 rounded-md font-semibold transition hover:bg-white hover:text-slate-800">Admin</button>
+        </div>
+
+        <!-- Wrapped in a standard form so Chrome recognizes credentials -->
+        <form onsubmit="event.preventDefault(); window.login();" class="flex flex-col gap-4">
+            <input type="text" id="login-username" name="username" autocomplete="username" placeholder="Employee Name" value="" class="p-3 rounded-lg border border-slate-200 w-full focus:outline-teal-600 bg-white">
+            
+            <div class="relative w-full">
+                <input type="password" id="login-password" name="password" autocomplete="current-password" placeholder="Password (leave blank for first-time setup)" value="" class="p-3 pr-10 rounded-lg border border-slate-200 w-full focus:outline-teal-600 bg-white">
+                <button type="button" onclick="window.togglePasswordVisibility('login-password', 'eye-icon-login')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <span id="eye-icon-login">👁️</span>
+                </button>
+            </div>
+
+            <button type="submit" id="btn-login-submit" class="bg-teal-700 text-white p-3 rounded-lg font-bold text-lg hover:bg-teal-800 transition shadow-sm mt-2">Log In</button>
+        </form>
+    </div>
+</div>
+
+        <!-- Set Password View -->
+        <div id="view-set-password" class="hidden max-w-md mx-auto my-10">
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center">
+                <div class="mb-6">
+                    <span class="text-6xl block mb-4 drop-shadow-sm">🔒</span>
+                    <h2 class="text-2xl font-bold text-slate-800 brand-font">Set Your Password</h2>
+                    <p class="text-slate-500 text-sm mt-2 font-medium">Welcome! Please create a secure password for your account.</p>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <div class="relative w-full">
+                        <input type="password" id="new-password" placeholder="New Password" class="p-3 pr-10 rounded-lg border border-slate-200 w-full focus:outline-teal-600 bg-white">
+                        <button type="button" onclick="window.togglePasswordVisibility('new-password', 'eye-icon-new')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <span id="eye-icon-new">👁️</span>
+                        </button>
+                    </div>
+                    <div class="relative w-full">
+                        <input type="password" id="confirm-password" placeholder="Confirm New Password" class="p-3 pr-10 rounded-lg border border-slate-200 w-full focus:outline-teal-600 bg-white">
+                        <button type="button" onclick="window.togglePasswordVisibility('confirm-password', 'eye-icon-confirm')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <span id="eye-icon-confirm">👁️</span>
+                        </button>
+                    </div>
+                    <button onclick="window.saveNewPassword()" class="bg-teal-700 text-white p-3 rounded-lg font-bold text-lg hover:bg-teal-800 transition shadow-sm mt-2">Save Password & Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee View -->
+        <div id="view-employee" class="hidden">
+            <h2 id="emp-greeting" class="text-2xl font-semibold brand-font text-slate-800 mb-6"></h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="glass p-4 rounded-xl text-center border border-slate-200 bg-white">
+                    <h3 class="text-xs text-slate-500 uppercase tracking-wide font-semibold">Hours Worked (This Week)</h3>
+                    <p id="stat-week" class="text-3xl font-bold text-slate-800 mt-1">0.0 hrs</p>
+                </div>
+                <div class="glass p-4 rounded-xl text-center border border-slate-200 bg-white">
+                    <h3 class="text-xs text-slate-500 uppercase tracking-wide font-semibold">Hours Worked (This Month)</h3>
+                    <p id="stat-month" class="text-3xl font-bold text-slate-800 mt-1">0.0 hrs</p>
+                </div>
+                <div class="glass p-4 rounded-xl text-center border border-teal-200 bg-teal-50/50">
+                    <h3 class="text-xs text-teal-800 uppercase tracking-wide font-bold">Total Payable Hours</h3>
+                    <p id="stat-payable" class="text-3xl font-bold text-teal-700 mt-1">0.0 hrs</p>
+                    <p class="text-xs text-teal-600 mt-1 opacity-90">Includes Holiday rates & revenue bonuses</p>
+                </div>
+            </div>
+
+            <div class="p-6 bg-slate-50 rounded-xl border border-slate-200 mb-8 text-center flex flex-col items-center" id="shift-controls">
+                <div id="status-clocked-out" class="w-full">
+                    <p class="mb-4 text-slate-600 font-medium text-lg">You are not currently clocked in.</p>
+                    <button onclick="window.clockIn()" class="bg-teal-700 text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-teal-800 transition shadow-sm w-full md:w-auto">Clock In Now</button>
+                </div>
+                
+                <div id="status-clocked-in" class="hidden w-full">
+                    <p class="mb-4 text-slate-700 font-semibold text-lg" id="active-shift-text">Clocked in</p>
+                    <button onclick="window.openClockOutModal()" class="bg-amber-600 text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-amber-700 transition shadow-sm w-full md:w-auto">Clock Out</button>
+                </div>
+
+                <div class="mt-6 border-t border-slate-200 pt-4 w-full md:w-1/2">
+                    <p class="text-sm text-slate-500 mb-2 font-medium">Forgot to clock in earlier?</p>
+                    <button onclick="window.openManualEntryModal('employee')" class="bg-white text-slate-700 border border-slate-300 px-6 py-2 rounded-lg font-semibold text-sm hover:bg-slate-50 transition w-full md:w-auto shadow-sm">
+                        + Add Manual Clock-In
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <h3 class="font-semibold mb-4 text-lg border-b border-slate-200 pb-2 text-slate-800">My Completed Shifts</h3>
+                <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
+                                <th class="p-4 font-semibold">Date</th>
+                                <th class="p-4 font-semibold">Clock In</th>
+                                <th class="p-4 font-semibold">Clock Out</th>
+                                <th class="p-4 font-semibold">Break</th>
+                                <th class="p-4 font-semibold">Working</th>
+                                <th class="p-4 font-semibold">Payable</th>
+                                <th class="p-4 text-center font-semibold">Manage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emp-logs-table" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="view-admin" class="hidden">
+            <h2 class="text-2xl font-semibold mb-6 brand-font text-slate-800">Admin Dashboard</h2>
+            
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                    <h3 class="font-semibold text-slate-800 text-lg flex items-center gap-2">
+                        📅 Daily Attendance Roster
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-slate-500 font-semibold uppercase">Select Date:</label>
+                        <input type="date" id="admin-roster-date" onchange="window.renderDailyRoster()" class="p-2 border border-slate-200 rounded focus:outline-teal-600 bg-slate-50 text-sm font-semibold text-slate-700">
+                    </div>
+                </div>
+
+                <div id="daily-roster-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-8">
+                <div class="border-b border-slate-100 pb-3 mb-4">
+                    <h3 class="font-semibold text-slate-800 text-lg flex items-center gap-2">
+                        💵 Calculate Hours by Date Range
+                    </h3>
+                </div>
+                <div class="flex flex-col md:flex-row gap-4 items-end mb-6">
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-500 uppercase font-semibold">From Date</label>
+                        <input type="date" id="admin-date-from" class="w-full p-2 border border-slate-200 rounded mt-1 focus:outline-teal-600 bg-slate-50/50">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-500 uppercase font-semibold">To Date</label>
+                        <input type="date" id="admin-date-to" class="w-full p-2 border border-slate-200 rounded mt-1 focus:outline-teal-600 bg-slate-50/50">
+                    </div>
+                    <button onclick="window.calculateAdminSummary()" class="bg-teal-700 text-white px-6 py-2 h-[42px] rounded font-semibold hover:bg-teal-800 shadow-sm transition">Calculate</button>
+                </div>
+
+                <div id="admin-summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4 mt-10">
+                <h3 class="text-lg font-semibold text-slate-800">Master Activity Log</h3>
+                <div class="flex gap-2">
+                    <button onclick="window.openManualEntryModal('admin')" class="bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-teal-800 shadow-sm transition">+ Add Manual Shift</button>
+                    <button onclick="window.exportCSV()" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200 transition">Export CSV</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
+                            <th class="p-4 font-semibold">Employee</th>
+                            <th class="p-4 font-semibold">Date</th>
+                            <th class="p-4 font-semibold">Clock In</th>
+                            <th class="p-4 font-semibold">Clock Out</th>
+                            <th class="p-4 font-semibold">Break</th>
+                            <th class="p-4 font-semibold">Working Hrs</th>
+                            <th class="p-4 font-semibold">Payable Hrs</th>
+                            <th class="p-4 text-center font-semibold">Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-logs-table" class="text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clock Out Modal -->
+    <div id="modal-clockout" class="hidden fixed inset-0 bg-slate-900/30 z-50 flex justify-center items-center backdrop-blur-sm">
+        <div class="glass p-6 rounded-2xl w-96 text-center bg-white shadow-xl border border-slate-200">
+            <h3 class="text-xl font-bold mb-4 brand-font text-slate-800">Finishing Shift</h3>
+            
+            <label class="block text-sm text-slate-600 mb-2 font-medium">Break Time Taken</label>
+            <input type="range" id="break-slider" min="0" max="120" step="5" value="30" class="w-full mb-1 cursor-pointer" oninput="document.getElementById('break-val').innerText = this.value + ' mins'">
+            <div class="font-bold text-2xl text-teal-700 mb-4" id="break-val">30 mins</div>
+
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-left mb-6">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="bonus-revenue-clockout" class="w-5 h-5 accent-teal-700 rounded cursor-pointer">
+                    <span class="text-sm font-semibold text-slate-700">Daily Revenue > $2,000 (+1 extra payable hr)</span>
+                </label>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="window.closeModal('modal-clockout')" class="flex-1 bg-slate-100 p-3 rounded-lg font-semibold hover:bg-slate-200 transition text-slate-700">Cancel</button>
+                <button onclick="window.confirmClockOut()" class="flex-1 bg-amber-600 text-white p-3 rounded-lg font-semibold hover:bg-amber-700 transition shadow-sm">Clock Out</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Shift / Edit Entry Modal -->
+    <div id="modal-manual" class="hidden fixed inset-0 bg-slate-900/30 z-50 flex justify-center items-center backdrop-blur-sm">
+        <div class="glass p-6 rounded-2xl w-full max-w-md bg-white shadow-xl border border-slate-200">
+            <h3 id="modal-manual-title" class="text-xl font-bold mb-4 brand-font text-slate-800">Manual Clock-In</h3>
+            
+            <div class="flex flex-col gap-3">
+                <div id="manual-emp-select-container" class="hidden">
+                    <label class="text-xs text-slate-500 uppercase font-semibold">Employee Name</label>
+                    <input type="text" id="manual-emp-name" placeholder="John Doe" class="w-full p-2 border border-slate-200 bg-slate-50 rounded mt-1 focus:outline-teal-600">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-semibold">Date</label>
+                    <input type="date" id="manual-date" class="w-full p-2 border border-slate-200 bg-slate-50 rounded mt-1 cursor-pointer focus:outline-teal-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-500 uppercase font-semibold">Clock In Time</label>
+                        <input type="time" id="manual-time-in" value="10:00" class="w-full p-2 border border-slate-200 bg-slate-50 rounded mt-1 cursor-pointer focus:outline-teal-600 text-lg font-mono">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 uppercase font-semibold">Clock Out Time</label>
+                        <input type="time" id="manual-time-out" value="17:30" class="w-full p-2 border border-slate-200 bg-slate-50 rounded mt-1 cursor-pointer focus:outline-teal-600 text-lg font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase font-semibold">Break (Minutes)</label>
+                    <input type="number" id="manual-break" value="30" min="0" step="5" class="w-full p-2 border border-slate-200 bg-slate-50 rounded mt-1 focus:outline-teal-600 text-lg">
+                </div>
+                
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col gap-2 mt-2">
+                    <label class="flex items-center gap-3 cursor-pointer text-sm font-semibold text-slate-700">
+                        <input type="checkbox" id="manual-revenue-bonus" class="w-5 h-5 accent-teal-700 rounded cursor-pointer">
+                        <span>Revenue > $2,000 (+1 Extra Payable Hr)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <button onclick="window.closeModal('modal-manual')" class="flex-1 bg-slate-100 p-3 rounded-lg font-semibold hover:bg-slate-200 transition text-slate-700">Cancel</button>
+                <button onclick="window.saveManualShift()" class="flex-1 bg-teal-700 text-white p-3 rounded-lg font-semibold hover:bg-teal-800 transition shadow-sm">Save Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // CONFIGURATION: Replace with your deployed Web App URL
+        // =========================================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqm_TEVyQfA6cNhWYg1mJjGfUR2nrqIXOc8_3ao_CBJxnjCmUTFeWoJOAU7df2ir0/exec';
+
+        let loginMode = 'employee';
+        let currentUser = null;
+        let activeShift = null; 
+        let currentLogs = [];
+        let manualEntryContext = 'employee';
+        let editingLogId = null; 
+        let pendingSetupUsername = null;
+
+        window.togglePasswordVisibility = function(inputId, eyeIconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(eyeIconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                icon.innerText = '👁️';
+            }
+        };
+
+        function cleanDate(val) {
+            if (!val) return '';
+            let str = String(val).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            let d = new Date(str);
+            if (!isNaN(d.getTime())) {
+                let year = d.getFullYear();
+                let month = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            let match = str.match(/\d{4}-\d{2}-\d{2}/);
+            if (match) return match[0];
+            return str;
+        }
+
+        function cleanTime(val) {
+            if (!val) return '';
+            let str = String(val);
+            let match = str.match(/\d{2}:\d{2}/);
+            return match ? match[0] : str;
+        }
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function apiCall(payload) {
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                return await response.json();
+            } catch (err) {
+                console.error('API Error:', err);
+                return { success: false, message: 'Network connection failed.' };
+            }
+        }
+
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-rose-600' : type === 'success' ? 'bg-teal-700' : 'bg-slate-800';
+            toast.className = `${bg} text-white px-5 py-3 rounded-xl shadow-lg font-semibold text-sm transition-all transform hover:scale-105`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+
+        window.closeModal = function(id) { 
+            document.getElementById(id).classList.add('hidden'); 
+        };
+
+        function calculateShift(timeInStr, timeOutStr, breakMins, dateStr, highRevenue) {
+            const [hin, min] = timeInStr.split(':').map(Number);
+            const [hout, mout] = timeOutStr.split(':').map(Number);
+
+            let inMins = hin * 60 + min;
+            let outMins = hout * 60 + mout;
+
+            if (outMins < inMins) outMins += 24 * 60; 
+
+            const durationMins = outMins - inMins;
+
+            if (breakMins >= durationMins) {
+                return { error: `Break time (${breakMins} mins) cannot be equal to or exceed total shift duration.` };
+            }
+
+            const workingMins = durationMins - breakMins;
+            const workingHours = parseFloat((workingMins / 60.0).toFixed(2));
+
+            const shiftDate = new Date(dateStr + 'T00:00:00');
+            const isHoliday = shiftDate.getDay() === 0; 
+
+            let payableHours = workingHours * (isHoliday ? 1.15 : 1.0);
+            if (highRevenue) payableHours += 1.0;
+            payableHours = parseFloat(payableHours.toFixed(2));
+
+            return { workingHours, payableHours, durationMins, isHoliday };
+        }
+
+        window.setLoginMode = function(mode) {
+            loginMode = mode;
+            const empTab = document.getElementById('tab-emp');
+            const adminTab = document.getElementById('tab-admin');
+            const userBox = document.getElementById('login-username');
+
+            if (mode === 'admin') {
+                empTab.className = "flex-1 text-slate-500 py-2 rounded-md font-semibold transition hover:bg-white hover:text-slate-800";
+                adminTab.className = "flex-1 bg-white shadow-sm text-slate-800 py-2 rounded-md font-semibold transition";
+                userBox.classList.add('hidden');
+            } else {
+                adminTab.className = "flex-1 text-slate-500 py-2 rounded-md font-semibold transition hover:bg-white hover:text-slate-800";
+                empTab.className = "flex-1 bg-white shadow-sm text-slate-800 py-2 rounded-md font-semibold transition";
+                userBox.classList.remove('hidden');
+            }
+        };
+
+        window.login = async function() {
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login-submit');
+            btn.innerText = 'Connecting...';
+            btn.disabled = true;
+
+            const username = loginMode === 'admin' ? 'Admin' : document.getElementById('login-username').value.trim();
+
+            if (!username) {
+                btn.innerText = 'Log In'; btn.disabled = false;
+                return window.showToast('Please enter your name', 'error');
+            }
+
+            const passwordHash = pass !== '' ? await sha256(pass) : '';
+
+            const res = await apiCall({ action: 'LOGIN', username: username, passwordHash: passwordHash });
+            btn.innerText = 'Log In'; btn.disabled = false;
+
+            if (res.success) {
+                if (res.status === 'NEED_NEW_PASSWORD') {
+                    pendingSetupUsername = username;
+                    document.getElementById('view-login').classList.add('hidden');
+                    document.getElementById('view-set-password').classList.remove('hidden');
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    window.showToast('Please set your account password', 'info');
+                } else {
+                    currentUser = { role: res.role, username: res.name };
+                    // Restore active shift from database if any
+                    activeShift = res.activeShift ? { date: cleanDate(res.activeShift.date), timeIn: cleanTime(res.activeShift.timeIn) } : null;
+                    
+                    window.showToast('Welcome to Tock!', 'success');
+                    loadDashboard();
+                }
+            } else {
+                window.showToast(res.message || 'Login failed', 'error');
+            }
+        };
+
+        window.saveNewPassword = async function() {
+            const p1 = document.getElementById('new-password').value;
+            const p2 = document.getElementById('confirm-password').value;
+
+            if (!p1 || p1.length < 4) return window.showToast('Password must be at least 4 characters', 'error');
+            if (p1 !== p2) return window.showToast('Passwords do not match', 'error');
+
+            const newHash = await sha256(p1);
+            window.showToast('Saving password...', 'info');
+
+            const res = await apiCall({ action: 'SET_PASSWORD', username: pendingSetupUsername, newPasswordHash: newHash });
+
+            if (res.success) {
+                window.showToast('Password set! Please log in.', 'success');
+                document.getElementById('view-set-password').classList.add('hidden');
+                document.getElementById('view-login').classList.remove('hidden');
+                document.getElementById('login-username').value = pendingSetupUsername || '';
+                document.getElementById('login-password').value = '';
+                pendingSetupUsername = null;
+            } else {
+                window.showToast(res.message || 'Error setting password', 'error');
+            }
+        };
+
+        window.logout = function() {
+            currentUser = null;
+            activeShift = null;
+            currentLogs = [];
+            document.querySelectorAll('div[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-login').classList.remove('hidden');
+            document.getElementById('btn-logout').classList.add('hidden');
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-username').value = '';
+        };
+
+        async function loadDashboard() {
+            document.querySelectorAll('div[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('btn-logout').classList.remove('hidden');
+
+            if (currentUser.role === 'Admin') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                setDefaultDates();
+            } else {
+                document.getElementById('view-employee').classList.remove('hidden');
+                document.getElementById('emp-greeting').innerText = `Hello, ${currentUser.username}!`;
+                updateShiftUI();
+            }
+            await fetchAndRenderLogs();
+        }
+
+        async function fetchAndRenderLogs() {
+            const res = await apiCall({ action: 'GET_LOGS' });
+            if (res.success) {
+                currentLogs = (res.logs || []).map(l => ({
+                    ...l,
+                    date: cleanDate(l.date),
+                    timeIn: cleanTime(l.timeIn),
+                    timeOut: cleanTime(l.timeOut)
+                }));
+                refreshTables();
+                if (currentUser && currentUser.role === 'Admin') {
+                    window.calculateAdminSummary();
+                    window.renderDailyRoster();
+                } else if (currentUser) {
+                    calculateEmployeeStats();
+                }
+            } else {
+                window.showToast('Failed to load logs', 'error');
+            }
+        }
+
+        window.clockIn = async function() {
+            const now = new Date();
+            const timeStr = now.toTimeString().substring(0, 5);
+            const dateStr = now.toISOString().split('T')[0];
+
+            activeShift = { timeIn: timeStr, date: dateStr };
+            window.showToast('Saving clock-in...', 'info');
+
+            const res = await apiCall({ action: 'CLOCK_IN', employeeName: currentUser.username, date: dateStr, timeIn: timeStr });
+            if (res.success) {
+                window.showToast(`Clocked In at ${timeStr}`, 'success');
+                updateShiftUI();
+                await fetchAndRenderLogs();
+            } else {
+                window.showToast('Failed to save clock-in', 'error');
+            }
+        };
+
+        window.openClockOutModal = function() {
+            document.getElementById('modal-clockout').classList.remove('hidden');
+            document.getElementById('break-slider').value = 30;
+            document.getElementById('break-val').innerText = '30 mins';
+            document.getElementById('bonus-revenue-clockout').checked = false;
+        };
+
+        window.confirmClockOut = async function() {
+            const breakMins = parseInt(document.getElementById('break-slider').value);
+            const highRevenue = document.getElementById('bonus-revenue-clockout').checked;
+            const now = new Date();
+            const timeOut = now.toTimeString().substring(0, 5);
+
+            const result = calculateShift(activeShift.timeIn, timeOut, breakMins, activeShift.date, highRevenue);
+            if (result.error) return window.showToast(result.error, 'error');
+
+            window.closeModal('modal-clockout');
+            window.showToast('Saving shift...', 'info');
+
+            const logData = {
+                employeeName: currentUser.username,
+                date: activeShift.date,
+                timeIn: activeShift.timeIn,
+                timeOut: timeOut,
+                breakMins: breakMins,
+                isHoliday: result.isHoliday,
+                highRevenue: highRevenue,
+                workingHours: result.workingHours,
+                payableHours: result.payableHours
+            };
+
+            const res = await apiCall({ action: 'ADD_LOG', logData: logData });
+            if (res.success) {
+                activeShift = null; 
+                window.showToast('Shift recorded!', 'success');
+                updateShiftUI();
+                await fetchAndRenderLogs();
+            } else {
+                window.showToast('Failed to save shift', 'error');
+            }
+        };
+
+        window.editLog = function(id) {
+            const log = currentLogs.find(l => l.id == id);
+            if (!log) return;
+
+            editingLogId = id; 
+            manualEntryContext = currentUser.role === 'Admin' ? 'admin' : 'employee';
+            
+            document.getElementById('modal-manual-title').innerText = "Edit Shift Log";
+            document.getElementById('manual-date').value = log.date;
+            document.getElementById('manual-time-in').value = log.timeIn;
+            document.getElementById('manual-time-out').value = log.timeOut;
+            document.getElementById('manual-break').value = log.breakMins;
+            document.getElementById('manual-revenue-bonus').checked = log.highRevenue;
+
+            const empContainer = document.getElementById('manual-emp-select-container');
+            if (manualEntryContext === 'admin') {
+                empContainer.classList.remove('hidden');
+                document.getElementById('manual-emp-name').value = log.employeeName;
+            } else {
+                empContainer.classList.add('hidden');
+            }
+
+            document.getElementById('modal-manual').classList.remove('hidden');
+        };
+
+        window.openManualEntryModal = function(context = 'employee') {
+            manualEntryContext = context;
+            editingLogId = null; 
+            
+            document.getElementById('modal-manual-title').innerText = "Manual Clock-In";
+            document.getElementById('manual-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('manual-time-in').value = '10:00';
+            document.getElementById('manual-time-out').value = '17:30';
+            document.getElementById('manual-break').value = 30;
+            document.getElementById('manual-revenue-bonus').checked = false;
+
+            const empContainer = document.getElementById('manual-emp-select-container');
+            if (context === 'admin') {
+                empContainer.classList.remove('hidden');
+                document.getElementById('manual-emp-name').value = '';
+            } else {
+                empContainer.classList.add('hidden');
+            }
+
+            document.getElementById('modal-manual').classList.remove('hidden');
+        };
+
+        window.saveManualShift = async function() {
+            const date = document.getElementById('manual-date').value;
+            const timeIn = document.getElementById('manual-time-in').value;
+            const timeOut = document.getElementById('manual-time-out').value;
+            const breakMins = parseInt(document.getElementById('manual-break').value) || 0;
+            const highRevenue = document.getElementById('manual-revenue-bonus').checked;
+
+            let empName = currentUser.username;
+            if (manualEntryContext === 'admin') {
+                empName = document.getElementById('manual-emp-name').value.trim();
+                if (!empName) return window.showToast('Please enter an employee name', 'error');
+            }
+
+            if (!date || !timeIn || !timeOut) return window.showToast('Please fill in all fields', 'error');
+
+            const result = calculateShift(timeIn, timeOut, breakMins, date, highRevenue);
+            if (result.error) return window.showToast(result.error, 'error');
+
+            const logData = {
+                employeeName: empName,
+                date: date,
+                timeIn: timeIn,
+                timeOut: timeOut,
+                breakMins: breakMins,
+                isHoliday: result.isHoliday,
+                highRevenue: highRevenue,
+                workingHours: result.workingHours,
+                payableHours: result.payableHours
+            };
+
+            window.closeModal('modal-manual');
+            window.showToast('Saving log...', 'info');
+
+            let res;
+            if (editingLogId) {
+                res = await apiCall({ action: 'UPDATE_LOG', id: editingLogId, logData: logData });
+            } else {
+                res = await apiCall({ action: 'ADD_LOG', logData: logData });
+            }
+
+            if (res.success) {
+                window.showToast('Log saved!', 'success');
+                await fetchAndRenderLogs();
+            } else {
+                window.showToast('Error saving log', 'error');
+            }
+        };
+
+        window.deleteLog = async function(id) {
+            if (!confirm("Are you sure you want to delete this log?")) return;
+            window.showToast('Deleting...', 'info');
+
+            const res = await apiCall({ action: 'DELETE_LOG', id: id });
+            if (res.success) {
+                window.showToast('Log deleted', 'success');
+                await fetchAndRenderLogs();
+            } else {
+                window.showToast('Failed to delete log', 'error');
+            }
+        };
+
+        function updateShiftUI() {
+            if (activeShift) {
+                document.getElementById('status-clocked-out').classList.add('hidden');
+                document.getElementById('status-clocked-in').classList.remove('hidden');
+                document.getElementById('active-shift-text').innerText = `Clocked in since ${activeShift.timeIn} (${activeShift.date})`;
+            } else {
+                document.getElementById('status-clocked-in').classList.add('hidden');
+                document.getElementById('status-clocked-out').classList.remove('hidden');
+            }
+        }
+
+        function calculateEmployeeStats() {
+            const myLogs = currentLogs.filter(l => l.employeeName && l.employeeName.trim().toLowerCase() === currentUser.username.trim().toLowerCase());
+            
+            const totalWork = myLogs.reduce((sum, log) => sum + Number(log.workingHours || 0), 0);
+            const totalPayable = myLogs.reduce((sum, log) => sum + Number(log.payableHours || 0), 0);
+            
+            const currentYearMonth = new Date().toISOString().slice(0, 7);
+            const monthLogs = myLogs.filter(l => l.date && l.date.startsWith(currentYearMonth));
+            const monthWork = monthLogs.reduce((sum, log) => sum + Number(log.workingHours || 0), 0);
+
+            document.getElementById('stat-week').innerText = `${totalWork.toFixed(1)} hrs`; 
+            document.getElementById('stat-month').innerText = `${monthWork.toFixed(1)} hrs`; 
+            document.getElementById('stat-payable').innerText = `${totalPayable.toFixed(1)} hrs`;
+        }
+
+        function setDefaultDates() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+
+            document.getElementById('admin-date-to').value = todayStr;
+            document.getElementById('admin-date-from').value = firstDay;
+            document.getElementById('admin-roster-date').value = todayStr;
+        }
+
+        window.renderDailyRoster = function() {
+            const selectedDate = document.getElementById('admin-roster-date').value;
+            const container = document.getElementById('daily-roster-container');
+
+            if (!selectedDate) {
+                container.innerHTML = `<p class="text-slate-400 text-sm col-span-full">Please select a date above.</p>`;
+                return;
+            }
+
+            const daysLogs = currentLogs.filter(l => l.date === selectedDate);
+
+            if (daysLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full p-6 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                        <p class="text-slate-500 font-medium text-sm">No employees clocked in on ${selectedDate}.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = daysLogs.map(l => `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-slate-800 text-base">${l.employeeName}</span>
+                            <span class="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full font-semibold">Clocked In</span>
+                        </div>
+                        <div class="text-xs text-slate-600 space-y-1 font-mono">
+                            <p>⏱️ <span class="font-semibold text-slate-700">In:</span> ${l.timeIn} | <span class="font-semibold text-slate-700">Out:</span> ${l.timeOut || 'Active'}</p>
+                            <p>☕ <span class="font-semibold text-slate-700">Break:</span> ${l.breakMins} mins</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-200/80 flex justify-between items-center text-xs">
+                        <span class="text-slate-500">Worked: <strong class="text-slate-700">${Number(l.workingHours || 0).toFixed(2)}h</strong></span>
+                        <span class="text-teal-700 font-bold">Payable: ${Number(l.payableHours || 0).toFixed(2)}h</span>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.calculateAdminSummary = function() {
+            const start = document.getElementById('admin-date-from').value;
+            const end = document.getElementById('admin-date-to').value;
+            
+            if (!start || !end) return window.showToast('Please select date range', 'error');
+
+            const filtered = currentLogs.filter(log => log.date >= start && log.date <= end);
+            
+            const summary = {};
+            filtered.forEach(log => {
+                const name = log.employeeName ? log.employeeName.trim() : 'Unknown';
+                if(!summary[name]) summary[name] = { work: 0, payable: 0 };
+                summary[name].work += Number(log.workingHours || 0);
+                summary[name].payable += Number(log.payableHours || 0);
+            });
+
+            const container = document.getElementById('admin-summary-cards');
+            if (Object.keys(summary).length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-sm font-medium">No log entries found in this date range.</p>`;
+                refreshTables();
+                return;
+            }
+
+            container.innerHTML = Object.keys(summary).map(emp => `
+                <div class="glass p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center bg-white">
+                    <h4 class="font-bold text-slate-800 text-lg mb-2">${emp}</h4>
+                    <p class="text-sm text-slate-600">Worked: <span class="font-semibold">${summary[emp].work.toFixed(2)}h</span></p>
+                    <p class="text-sm text-slate-600">Payable: <span class="font-bold text-teal-700">${summary[emp].payable.toFixed(2)}h</span></p>
+                </div>
+            `).join('');
+            
+            refreshTables();
+        };
+
+        function refreshTables() {
+            if (!currentUser) return;
+
+            const formatTags = (log) => {
+                let tags = [];
+                if(log.isHoliday === true || log.isHoliday === 'TRUE' || log.isHoliday === 'true') tags.push('<span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Holiday</span>');
+                if(log.highRevenue === true || log.highRevenue === 'TRUE' || log.highRevenue === 'true') tags.push('<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">Bonus</span>');
+                return tags.join(' ') || '-';
+            };
+
+            if (currentUser.role === 'Employee') {
+                const tbody = document.getElementById('emp-logs-table');
+                const myLogs = currentLogs.filter(l => l.employeeName && l.employeeName.trim().toLowerCase() === currentUser.username.trim().toLowerCase()).sort((a,b) => b.date.localeCompare(a.date));
+                
+                if (myLogs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No shift logs found yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = myLogs.map(log => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="p-4">${log.date}</td>
+                        <td class="p-4 font-mono text-slate-600">${log.timeIn}</td>
+                        <td class="p-4 font-mono text-slate-600">${log.timeOut}</td>
+                        <td class="p-4">${log.breakMins}m</td>
+                        <td class="p-4 font-bold text-slate-700">${Number(log.workingHours || 0).toFixed(2)}h</td>
+                        <td class="p-4 font-bold text-teal-700">
+                            ${Number(log.payableHours || 0).toFixed(2)}h <div class="mt-1">${formatTags(log)}</div>
+                        </td>
+                        <td class="p-4 text-center space-x-2 whitespace-nowrap">
+                            <button onclick="window.editLog('${log.id}')" class="text-teal-600 hover:text-teal-800 font-semibold text-sm">Edit</button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="window.deleteLog('${log.id}')" class="text-rose-500 hover:text-rose-700 font-semibold text-sm">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                const tbody = document.getElementById('admin-logs-table');
+                const sortedLogs = [...currentLogs].sort((a,b) => b.date.localeCompare(a.date));
+                
+                if (sortedLogs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">No shift logs found in database.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = sortedLogs.map(log => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="p-4 font-semibold text-slate-800">${log.employeeName}</td>
+                        <td class="p-4">${log.date}</td>
+                        <td class="p-4 font-mono text-slate-600">${log.timeIn}</td>
+                        <td class="p-4 font-mono text-slate-600">${log.timeOut}</td>
+                        <td class="p-4">${log.breakMins}m</td>
+                        <td class="p-4 font-bold text-slate-700">${Number(log.workingHours || 0).toFixed(2)}h</td>
+                        <td class="p-4 font-bold text-teal-700">
+                            ${Number(log.payableHours || 0).toFixed(2)}h <div class="mt-1">${formatTags(log)}</div>
+                        </td>
+                        <td class="p-4 text-center space-x-2 whitespace-nowrap">
+                            <button onclick="window.editLog('${log.id}')" class="text-teal-600 hover:text-teal-800 font-semibold text-sm">Edit</button>
+                            <span class="text-slate-300">|</span>
+                            <button onclick="window.deleteLog('${log.id}')" class="text-rose-500 hover:text-rose-700 font-semibold text-sm">Delete</i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        window.exportCSV = function() {
+            if (!currentLogs.length) return window.showToast('No logs to export', 'error');
+            let csv = 'ID,Employee,Date,Clock In,Clock Out,Break Mins,Holiday,Bonus,Working Hours,Payable Hours\n';
+            currentLogs.forEach(l => {
+                csv += `${l.id},"${l.employeeName}",${l.date},${l.timeIn},${l.timeOut},${l.breakMins},${l.isHoliday},${l.highRevenue},${l.workingHours},${l.payableHours}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `tock_logs_${new Date().toISOString().split('T')[0]}.csv`);
+            a.click();
+        };
+    </script>
+</body>
+</html>
